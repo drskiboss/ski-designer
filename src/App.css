@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;600&display=swap');
+
+
+.app {
+  font-family: sans-serif;
+  padding: 2em;
+  background-color: #ebe9e6;
+  font-family: 'Inter', sans-serif;
+}
+label {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+input {
+  width: 80px;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: inner-spin-button !important;
+  opacity: 1 !important;
+  display: inline-block !important;
+}
+
+
