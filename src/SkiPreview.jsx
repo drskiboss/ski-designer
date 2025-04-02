@@ -262,7 +262,7 @@ export default function SkiPreview() {
         </div>
 
         <button onClick={downloadSVG} style={{ marginTop: '1em' }}>
-          Download Shape
+          Download Shappe
         </button>
       </div>
     </div>
