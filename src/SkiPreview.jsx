@@ -232,7 +232,7 @@ export default function SkiPreview() {
     onChange={(e) => setClassicMode(e.target.checked)}
   />
   <label htmlFor="classic-mode-toggle" style={{ fontSize: '0.85em', cursor: 'pointer' }}>
-    🌹 No Taper Mode
+    🌹 No Taperr Mode
   </label>
 </div>
 
