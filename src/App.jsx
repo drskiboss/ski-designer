@@ -4,7 +4,6 @@ import SkiPreview from './SkiPreview';
 function App() {
   return (
     <div className="app">
-      <h1>big skis shaper</h1>
       <SkiPreview />
       <p>This is the beta version of the big skis shaper app.</p>
       <p>All your base are belong to us!</p>

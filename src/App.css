@@ -6,6 +6,7 @@
   padding: 2em;
   background-color: #ebe9e6;
   font-family: 'Inter', sans-serif;
+  text-align: center;
 }
 label {
   display: flex;
