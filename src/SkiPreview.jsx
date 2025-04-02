@@ -65,8 +65,12 @@ function generateSkiOutline(params, classicMode) {
       [totalLength - tailArcRadius, tailArcRadius],
     ];
   } else {
-    const tipX = tipTaperOffset + tipTaperLength;
-    const tailX = totalLength - tailTaperOffset - tailTaperLength;
+    const enforcedTipOffset = (tipTaperOffset < tipArcRadius) ? tipArcRadius : tipTaperOffset;
+    const enforcedTailOffset = (tailTaperOffset < tailArcRadius) ? tailArcRadius : tailTaperOffset;
+
+    const tipX = enforcedTipOffset + tipTaperLength;
+    const tailX = totalLength - enforcedTailOffset - tailTaperLength;
+
     controlPoints = [
       [tipArcRadius, tipArcRadius],
       [tipX, tipTaperWidth / 2],
@@ -114,39 +118,57 @@ export default function SkiPreview() {
     setback: 100,
   };
 
+  const constraints = {
+    totalLength: { min: 1000, max: 2000 },
+    waistWidth: { min: 65, max: 320 },
+    tipArcRadius: { min: 30, max: 160 },
+    tailArcRadius: { min: 30, max: 160 },
+    tipTaperWidth: { min: 65, max: 350 },
+    tailTaperWidth: { min: 65, max: 350 },
+    tipTaperOffset: { min: 0, max: 350 },
+    tailTaperOffset: { min: 0, max: 350 },
+    tipTaperLength: { min: 0, max: 300 },
+    tailTaperLength: { min: 0, max: 300 },
+    setback: { min: 100, max: 100 },
+  };
+
+  const isParamValid = (key, value) => {
+    if (!constraints[key]) return true;
+    const { min, max } = constraints[key];
+    const num = Number(value);
+    return num >= min && num <= max;
+  };
+
+  const areAllParamsValid = (paramSet) =>
+    Object.entries(paramSet).every(([key, value]) => isParamValid(key, value));
+
+  const [touchedFields, setTouchedFields] = useState({});
   const [params, setParams] = useState(initialParams);
   const [editingParams, setEditingParams] = useState(initialParams);
+  const [lastValidParams, setLastValidParams] = useState(initialParams);
   const [classicMode, setClassicMode] = useState(false);
 
   const handleEditChange = (key) => (e) => {
     const newValue = e.target.value;
-    const prevValue = editingParams[key];
     setEditingParams((prev) => ({ ...prev, [key]: newValue }));
-
-    const prevNum = Number(prevValue);
-    const newNum = Number(newValue);
-    const isSpinner = !isNaN(prevNum) && !isNaN(newNum) && Math.abs(newNum - prevNum) === 1;
-
-    if (isSpinner) {
-      setParams((prev) => ({ ...prev, [key]: newNum }));
-    }
   };
 
   const commitChange = (key) => {
-    setParams((prev) => ({
-      ...prev,
-      [key]: editingParams[key] === '' ? 0 : Number(editingParams[key]),
-    }));
+    const value = editingParams[key] === '' ? 0 : Number(editingParams[key]);
+    const newParams = { ...params, [key]: value };
+    setParams(newParams);
+    setTouchedFields((prev) => ({ ...prev, [key]: true }));
+
+    if (areAllParamsValid(newParams)) {
+      setLastValidParams(newParams);
+    }
   };
 
   const handleKeyDown = (key) => (e) => {
     if (e.key === 'Enter') e.target.blur();
   };
 
-  const safeParams = Object.fromEntries(
-    Object.entries(params).map(([k, v]) => [k, v === '' ? 0 : v])
-  );
-
+  const safeParams = lastValidParams;
   const { d: pathD, controlPoints } = generateSkiOutline(safeParams, classicMode);
   const radius = computeCircleRadius(...controlPoints);
   const radiusMeters = (radius / 1000).toFixed(1);
@@ -177,80 +199,58 @@ export default function SkiPreview() {
 
   return (
     <div style={{ maxWidth: '100%', overflowX: 'hidden' }}>
-
-      {/* TITLE + RADIUS */}
-      <h1 style={{
-        textAlign: 'center',
-        fontSize: '1.8em',
-        fontWeight: '200',
-        margin: '1em 0 2em 0',
-      }}>
+      <h1 style={{ textAlign: 'center', fontSize: '1.8em', fontWeight: '200', margin: '1em 0 2em 0' }}>
         The Big Skis Shaper
       </h1>
 
-      {/* ✅ DETACHED MENU BAR */}
-      <div style={{
-        width: '100vw',
-        background: '#333',
-        color: 'white',
-        padding: '1em 1em',
-        borderBottom: '1px solid #444',
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '1em',
-        justifyContent: 'center',
-        alignItems: 'center',
-        boxSizing: 'border-box',
-      }}>
+      <div style={{ width: '100vw', background: '#333', color: 'white', padding: '1em', borderBottom: '1px solid #444', display: 'flex', flexWrap: 'wrap', gap: '1em', justifyContent: 'center' }}>
         {Object.keys(params).map((key) => {
           const isTaper = key.toLowerCase().includes('taper');
           if (classicMode && isTaper) return null;
           return (
             <label key={key} style={{ display: 'flex', flexDirection: 'column', fontSize: '0.85em' }}>
-  {key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
-  <div style={{ display: 'flex', alignItems: 'center' }}>
-    <input
-      type="number"
-      value={editingParams[key]}
-      onChange={handleEditChange(key)}
-      onBlur={() => commitChange(key)}
-      onKeyDown={handleKeyDown(key)}
-      style={{ width: '60px', marginRight: '0px', padding: '6px 12px',}}
-    />
-    <span style={{ fontSize: '0.8em' }}>mm</span>
-  </div>
-</label>
-
+              {key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <input
+                  type="number"
+                  value={editingParams[key]}
+                  onChange={handleEditChange(key)}
+                  onBlur={() => commitChange(key)}
+                  onKeyDown={handleKeyDown(key)}
+                  style={{ width: '60px', padding: '6px 12px' }}
+                />
+                <span style={{ fontSize: '0.8em' }}>mm</span>
+              </div>
+              {constraints[key] && touchedFields[key] && (
+                (Number(editingParams[key]) < constraints[key].min || Number(editingParams[key]) > constraints[key].max) && (
+                  <span style={{ color: 'yellow', fontSize: '0.8em' }}>
+                    Must be between {constraints[key].min} and {constraints[key].max}
+                  </span>
+                )
+              )}
+            </label>
           );
         })}
-        
-<div style={{  alignItems: 'center', gap: '4px' }}>
-  <input
-    id="classic-mode-toggle"
-    type="checkbox"
-    checked={classicMode}
-    onChange={(e) => setClassicMode(e.target.checked)}
-  />
-  <label htmlFor="classic-mode-toggle" style={{ fontSize: '0.85em', cursor: 'pointer' }}>
-    🌹 No Taper Mode
-  </label>
-</div>
-
+        <div style={{ alignItems: 'center', gap: '4px' }}>
+          <input
+            id="classic-mode-toggle"
+            type="checkbox"
+            checked={classicMode}
+            onChange={(e) => setClassicMode(e.target.checked)}
+          />
+          <label htmlFor="classic-mode-toggle" style={{ fontSize: '0.85em', cursor: 'pointer' }}>
+            🌹 No Taper Mode
+          </label>
+        </div>
       </div>
 
-    
-      <div style={{
-        fontWeight: '200',
-        textAlign: 'center',
-        marginTop: '2em',
-      }}>
+      <div style={{ fontWeight: '200', textAlign: 'center', marginTop: '2em' }}>
         Approx. Sidecut Radius: {radiusMeters} m
       </div>
 
-      {/* SVG + BUTTON */}
       <div style={{ textAlign: 'center', width: '100%' }}>
         <div style={{ overflowX: 'auto', width: '100%' }}>
-          <svg viewBox={`0 -150 ${safeParams.totalLength} 300`} height="250">
+          <svg viewBox={`0 -200 ${safeParams.totalLength} 400`} height="300">
             <path d={pathD} fill="lightgray" stroke="black" strokeWidth="1" />
             <circle cx={safeParams.totalLength / 2 + safeParams.setback} cy="0" r="4" fill="red" />
             <text x={safeParams.totalLength / 2 + safeParams.setback + 5} y="20" fontSize="12" fill="red">
@@ -260,9 +260,8 @@ export default function SkiPreview() {
             <text x={safeParams.totalLength - 60} y="-130" fontSize="16" fill="black">Tail</text>
           </svg>
         </div>
-
         <button onClick={downloadSVG} style={{ marginTop: '1em' }}>
-          Download Shappe
+          Download Shape
         </button>
       </div>
     </div>
